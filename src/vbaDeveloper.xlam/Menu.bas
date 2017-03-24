@@ -4,6 +4,7 @@ Option Explicit
 Private Const MENU_TITLE = "VbaDeveloper"
 Private Const XML_MENU_TITLE = "XML Import-Export"
 Private Const MENU_REFRESH = "Refresh this menu"
+Private Const MENU_SAVEALL = "Save all VBA"
 
 
 Public Sub createMenu()
@@ -24,7 +25,11 @@ Public Sub createMenu()
     addMenuSeparator rootMenu
     Dim refreshItem As CommandBarButton
     Set refreshItem = addMenuItem(rootMenu, "Menu.refreshMenu", MENU_REFRESH)
+    
     refreshItem.FaceId = 37
+    Dim saveAllItem As CommandBarButton
+    Set saveAllItem = addMenuItem(rootMenu, "Menu.saveAllMenu", MENU_SAVEALL)
+    saveAllItem.FaceId = 37
 
     ' menuItem.FaceId = FaceId ' set a picture
     Dim vProject As Variant
@@ -34,10 +39,9 @@ Public Sub createMenu()
         Dim project As VBProject
         Set project = vProject
         Dim projectName As String, caption As String
-
+        If Not (project.name = "VBAProject" & CRC16(Dir(project.fileName)) Or InStr(Dir(project.fileName), project.name) > 0) Then project.name = "VBAProject" & CRC16(Dir(project.fileName))
         projectName = project.name
         caption = projectName & " (" & Dir(project.fileName) & ")" '<- this can throw error
-
         Dim exCommand As String, imCommand As String, formatCommand As String
         exCommand = "'Menu.exportVbProject """ & projectName & """'"
         imCommand = "'Menu.importVbProject """ & projectName & """'"
@@ -120,6 +124,14 @@ Public Sub refreshMenu()
     menu.deleteMenu
     menu.createMenu
 End Sub
+
+Public Sub saveAllMenu()
+  Dim VBProj As VBProject
+  For Each VBProj In Application.VBE.VBProjects
+    exportVbProject (VBProj.name)
+  Next
+End Sub
+
 
 Public Sub exportVbProject(ByVal projectName As String)
     On Error GoTo exportVbProject_Error
@@ -249,4 +261,24 @@ Function GetFolder(InitDir As String) As String
     End With
     GetFolder = sItem
     Set fldr = Nothing
+End Function
+
+Function CRC16(txt As String)
+Dim x As Long
+Dim mask, i, j, nC, Crc As Integer
+Dim c As String
+
+Crc = &HFFFF
+
+For nC = 1 To Len(txt)
+    j = Val("&H" + Mid(txt, nC, 2))
+    Crc = Crc Xor j
+    For j = 1 To 8
+        mask = 0
+        If Crc / 2 <> Int(Crc / 2) Then mask = &HA001
+        Crc = Int(Crc / 2) And &H7FFF: Crc = Crc Xor mask
+    Next j
+Next nC
+
+CRC16 = Hex$(Crc)
 End Function
